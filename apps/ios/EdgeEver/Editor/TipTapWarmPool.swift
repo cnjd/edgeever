@@ -18,7 +18,6 @@ struct TipTapSession {
     var onDoubleTap: (() -> Void)?
     var onPickImage: (() -> Void)?
     var onSearchResult: ((_ count: Int, _ index: Int) -> Void)?
-    var onReaderScroll: ((_ collapsed: Bool) -> Void)?
     var onImageExportEvent: (([String: Any]) -> Void)?
     var onBodyReady: (() -> Void)?
 }
@@ -153,7 +152,6 @@ final class SharedTipTapRuntime: NSObject, WKScriptMessageHandler, WKNavigationD
             s.onDoubleTap = nil
             s.onPickImage = nil
             s.onSearchResult = nil
-            s.onReaderScroll = nil
             s.onBodyReady = nil
             session = s
         }
@@ -195,11 +193,6 @@ final class SharedTipTapRuntime: NSObject, WKScriptMessageHandler, WKNavigationD
     func focusEnd() {
         guard session?.mode == .editor else { return }
         focusEnd(attempt: 0)
-    }
-
-    func resetReaderScroll() {
-        guard ready, slot == .viewer else { return }
-        webView.evaluateJavaScript("window.EdgeEverEditor?.resetReaderScroll?.()", completionHandler: nil)
     }
 
     /// Select a match inside the current viewer/editor and return the total + active index.
@@ -725,10 +718,6 @@ final class SharedTipTapRuntime: NSObject, WKScriptMessageHandler, WKNavigationD
             let index = (body["index"] as? NSNumber)?.intValue ?? 0
             let cb = session?.onSearchResult
             DispatchQueue.main.async { cb?(count, index) }
-        case "readerScroll":
-            guard slot == .viewer, let collapsed = (body["collapsed"] as? NSNumber)?.boolValue else { break }
-            let cb = session?.onReaderScroll
-            DispatchQueue.main.async { cb?(collapsed) }
         case "imageExportChunk", "imageExportComplete", "imageExportError":
             let cb = session?.onImageExportEvent
             DispatchQueue.main.async { cb?(body) }
